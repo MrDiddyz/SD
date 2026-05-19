@@ -5,24 +5,35 @@ import CouncilPanel from "@/app/components/CouncilPanel";
 import MemoryView from "@/app/components/MemoryView";
 import ScoreBar from "@/app/components/ScoreBar";
 import StateView from "@/app/components/StateView";
+import type { MurmurState } from "@/engine/types";
+
+type RunResult = { state: MurmurState; memory: MurmurState[] };
 
 const starter = "Should MurMur launch the council dashboard as a live product demo?";
 
 export default function Page() {
   const [input, setInput] = useState(starter);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<RunResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const run = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input })
       });
-      const json = await res.json();
+      if (!res.ok) {
+        setError(`Server error: ${res.status} ${res.statusText}`);
+        return;
+      }
+      const json: RunResult = await res.json();
       setData(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -49,6 +60,7 @@ export default function Page() {
             {loading ? "Running..." : "Run council"}
           </button>
         </div>
+        {error && <p className="muted" style={{ marginTop: 10, color: "#f87171" }}>{error}</p>}
       </section>
 
       {data ? (
